@@ -5,7 +5,7 @@
   <title>Seb Ryder</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-  <!-- Clean minimalist font -->
+  <!-- Minimal modern font -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
@@ -18,48 +18,39 @@
       --accent: #6ee7b7;
     }
 
-    * {
-      box-sizing: border-box;
-    }
-
     body {
       margin: 0;
-      min-height: 100vh;
       background: var(--bg);
       color: var(--fg);
-      font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      font-family: 'Inter', system-ui, sans-serif;
     }
 
     .container {
-      max-width: 640px;
-      padding: 2rem;
-      line-height: 1.6;
+      padding: 1.5rem;
+      max-width: 480px;
+      line-height: 1.55;
+      font-size: 0.9rem;
     }
 
     .palms {
-      font-size: 1.5rem;
-      margin-bottom: 1rem;
+      font-size: 1.2rem;
+      margin-bottom: 0.75rem;
     }
 
     h1 {
+      font-size: 1.4rem;
       font-weight: 500;
-      margin: 0 0 1rem 0;
-      font-size: 2rem;
+      margin: 0 0 0.75rem 0;
     }
 
     p {
-      margin: 0.5rem 0;
+      margin: 0.35rem 0;
       color: var(--muted);
-      font-size: 1.05rem;
     }
 
     .age {
-      margin-top: 1.5rem;
-      font-size: 1.1rem;
-      color: var(--fg);
+      margin-top: 1rem;
+      font-size: 0.95rem;
     }
 
     .age span {
@@ -80,7 +71,7 @@
 
 <body>
   <div class="container">
-    <div class="palms">🌴🌴🌴</div>
+    <div class="palms" id="emojis">🌴🌴🌴</div>
 
     <h1>Seb Ryder</h1>
 
@@ -90,21 +81,44 @@
     <div class="age">
       Age: <span id="age">loading…</span>
     </div>
+
+    <p style="margin-top: 0.75rem;">
+      <a href="https://www.linkedin.com/in/sebastian-torres-pereira/" target="_blank" rel="noopener">
+        LinkedIn
+      </a>
+    </p>
   </div>
 
   <script>
-    // Birth date: May 30, 2006 at 17:00 (5pm)
-    const birthDate = new Date(2006, 4, 30, 17, 0, 0); // month is 0-indexed
+    // -------- Random emoji header --------
+    const emojiPool = [
+      "🌴", "🌊", "☀️", "🗿", "🪐", "🌒", "🧠", "📡", "🕶️", "🪶"
+    ];
+
+    function randomEmojis(count = 3) {
+      let result = "";
+      for (let i = 0; i < count; i++) {
+        result += emojiPool[Math.floor(Math.random() * emojiPool.length)];
+      }
+      return result;
+    }
+
+    document.getElementById("emojis").textContent = randomEmojis();
+
+    // -------- Live age counter --------
+    // Birth date: May 30, 2006 at 17:00
+    const birthDate = new Date(2006, 4, 30, 17, 0, 0);
 
     function updateAge() {
       const now = new Date();
       const ageMs = now - birthDate;
       const ageYears = ageMs / (1000 * 60 * 60 * 24 * 365.2425);
-      document.getElementById("age").textContent = ageYears.toFixed(4);
+      document.getElementById("age").textContent = ageYears.toFixed(6);
     }
 
     updateAge();
-    setInterval(updateAge, 100);
+    setInterval(updateAge, 50);
   </script>
 </body>
 </html>
+
