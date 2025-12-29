@@ -113,11 +113,11 @@
       const now = new Date();
       const ageMs = now - birthDate;
       const ageYears = ageMs / (1000 * 60 * 60 * 24 * 365.2425);
-      document.getElementById("age").textContent = ageYears.toFixed(6);
+      document.getElementById("age").textContent = ageYears.toFixed(8);
     }
 
     updateAge();
-    setInterval(updateAge, 50);
+    setInterval(updateAge, 5);
   </script>
 </body>
 </html>
