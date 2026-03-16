@@ -1,1 +1,891 @@
-//empty for now
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Japan Cashless Adoption Dashboard</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/recharts/2.12.7/Recharts.min.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background: #0f172a;
+      color: #e2e8f0;
+      font-family: system-ui, -apple-system, sans-serif;
+    }
+
+    #root {
+      min-height: 100vh;
+    }
+
+    .loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      font-size: 18px;
+      color: #94a3b8;
+    }
+
+    .loading-spinner {
+      width: 32px;
+      height: 32px;
+      border: 3px solid #334155;
+      border-top-color: #6366f1;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin-right: 12px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div id="root">
+    <div class="loading">
+      <div class="loading-spinner"></div>
+      Loading dashboard data...
+    </div>
+  </div>
+
+  <script type="text/babel">
+    var useState = React.useState;
+    var useMemo = React.useMemo;
+    var useEffect = React.useEffect;
+    var BarChart = Recharts.BarChart;
+    var Bar = Recharts.Bar;
+    var XAxis = Recharts.XAxis;
+    var YAxis = Recharts.YAxis;
+    var CartesianGrid = Recharts.CartesianGrid;
+    var Tooltip = Recharts.Tooltip;
+    var Legend = Recharts.Legend;
+    var ResponsiveContainer = Recharts.ResponsiveContainer;
+    var Cell = Recharts.Cell;
+
+    var C = {
+      credit: "#6366f1",
+      nfc: "#06b6d4",
+      cashOnly: "#f59e0b",
+      noData: "#94a3b8",
+      debit: "#10b981",
+      bg: "#0f172a",
+      card: "#1e293b",
+      border: "#334155",
+      text: "#e2e8f0",
+      muted: "#94a3b8",
+      accent: "#818cf8"
+    };
+
+    var LOCATION_TYPES = {
+      "Tokyo_Shibuya": "Major Urban",
+      "Tokyo_Shinjuku": "Major Urban",
+      "Tokyo_Asakusa": "Major Urban",
+      "Osaka_Namba": "Major Urban",
+      "Osaka_Umeda": "Major Urban",
+      "Nagoya_Sakae": "Major Urban",
+      "Fukuoka_Tenjin": "Major Urban",
+      "Sapporo_Susukino": "Major Urban",
+      "Sendai_Station": "Mid-size City",
+      "Hiroshima_Central": "Mid-size City",
+      "Kanazawa_Central": "Mid-size City",
+      "Matsuyama_Central": "Mid-size City",
+      "Takayama_Old_Town": "Small / Rural",
+      "Nikko_Town": "Small / Rural",
+      "Onomichi_Town": "Small / Rural",
+      "Tono_Iwate": "Small / Rural",
+      "Kamikochi_Area": "Small / Rural",
+      "Aso_Kumamoto": "Small / Rural"
+    };
+
+    var URBAN_ORDER = ["Major Urban", "Mid-size City", "Small / Rural"];
+
+    var BIZ_LABELS = {
+      convenience_store: "Convenience Store",
+      supermarket: "Supermarket",
+      drugstore: "Drugstore",
+      restaurant: "Restaurant",
+      ramen_restaurant: "Ramen Shop",
+      izakaya: "Izakaya",
+      cafe: "Cafe",
+      bakery: "Bakery",
+      book_store: "Bookstore",
+      hair_salon: "Hair Salon",
+      florist: "Florist"
+    };
+
+    function pct(n, d) {
+      return d ? Math.round((n / d) * 1000) / 10 : 0;
+    }
+
+    function StatCard(props) {
+      return (
+        <div style={{
+          background: C.card,
+          border: "1px solid " + C.border,
+          borderRadius: 10,
+          padding: "16px 20px",
+          flex: "1 1 140px",
+          minWidth: 140
+        }}>
+          <div style={{ fontSize: 13, color: C.muted, marginBottom: 4 }}>
+            {props.label}
+          </div>
+          <div style={{ fontSize: 28, fontWeight: 700, color: props.color || C.text }}>
+            {props.value}
+          </div>
+          {props.sub && (
+            <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>
+              {props.sub}
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    function SectionTitle(props) {
+      return (
+        <h2 style={{
+          fontSize: 18,
+          fontWeight: 700,
+          color: C.text,
+          margin: "32px 0 16px",
+          borderBottom: "1px solid " + C.border,
+          paddingBottom: 8
+        }}>
+          {props.children}
+        </h2>
+      );
+    }
+
+    function CustomTooltip(props) {
+      if (!props.active || !props.payload || !props.payload.length) return null;
+      return (
+        <div style={{
+          background: "#1e293b",
+          border: "1px solid #475569",
+          borderRadius: 8,
+          padding: "10px 14px",
+          fontSize: 13
+        }}>
+          <div style={{ fontWeight: 600, marginBottom: 6, color: C.text }}>
+            {props.label}
+          </div>
+          {props.payload.map(function(p, i) {
+            return (
+              <div key={i} style={{ color: p.color, marginBottom: 2 }}>
+                {p.name}: {p.value}%
+              </div>
+            );
+          })}
+        </div>
+      );
+    }
+
+    function App() {
+      var dataState = useState(null);
+      var data = dataState[0];
+      var setData = dataState[1];
+
+      var errorState = useState(null);
+      var error = errorState[0];
+      var setError = errorState[1];
+
+      var viewState = useState("overview");
+      var view = viewState[0];
+      var setView = viewState[1];
+
+      useEffect(function() {
+        Papa.parse("data.csv", {
+          download: true,
+          header: true,
+          skipEmptyLines: true,
+          dynamicTyping: true,
+          complete: function(res) {
+            var rows = res.data.map(function(r) {
+              return {
+                place_id: r.place_id,
+                name: r.name,
+                address: r.address,
+                primary_type: r.primary_type,
+                primary_type_display: r.primary_type_display,
+                all_types: r.all_types,
+                latitude: r.latitude,
+                longitude: r.longitude,
+                business_status: r.business_status,
+                rating: r.rating,
+                user_rating_count: r.user_rating_count,
+                price_level: r.price_level,
+                search_location: r.search_location,
+                search_category: r.search_category,
+                search_query: r.search_query,
+                collected_at: r.collected_at,
+                accepts_credit_cards: r.accepts_credit_cards === true || r.accepts_credit_cards === "True",
+                accepts_debit_cards: r.accepts_debit_cards === true || r.accepts_debit_cards === "True",
+                accepts_cash_only: r.accepts_cash_only === true || r.accepts_cash_only === "True",
+                accepts_nfc: r.accepts_nfc === true || r.accepts_nfc === "True",
+                has_payment_data: [r.accepts_credit_cards, r.accepts_debit_cards, r.accepts_cash_only, r.accepts_nfc]
+                  .some(function(v) { return v !== "" && v !== null && v !== undefined; }),
+                urban_type: LOCATION_TYPES[r.search_location] || "Unknown",
+                biz_label: BIZ_LABELS[r.search_category] || r.search_category
+              };
+            });
+            if (rows.length === 0) {
+              setError("CSV loaded but contained no data rows.");
+            } else {
+              setData(rows);
+            }
+          },
+          error: function(err) {
+            setError("Could not load data.csv. Make sure it is in the same folder as index.html. Error: " + err.message);
+          }
+        });
+      }, []);
+
+      var a = useMemo(function() {
+        if (!data) return null;
+
+        var total = data.length;
+        var withData = data.filter(function(r) { return r.has_payment_data; }).length;
+        var cc = data.filter(function(r) { return r.accepts_credit_cards; }).length;
+        var nfc = data.filter(function(r) { return r.accepts_nfc; }).length;
+        var cashOnly = data.filter(function(r) { return r.accepts_cash_only; }).length;
+
+        var bizTypeSet = {};
+        data.forEach(function(r) { bizTypeSet[r.search_category] = true; });
+        var bizTypes = Object.keys(bizTypeSet);
+
+        var byBiz = bizTypes.map(function(bt) {
+          var sub = data.filter(function(r) { return r.search_category === bt; });
+          var wd = sub.filter(function(r) { return r.has_payment_data; }).length;
+          return {
+            name: BIZ_LABELS[bt] || bt,
+            key: bt,
+            total: sub.length,
+            withData: wd,
+            creditCards: pct(sub.filter(function(r) { return r.accepts_credit_cards; }).length, sub.length),
+            nfc: pct(sub.filter(function(r) { return r.accepts_nfc; }).length, sub.length),
+            cashOnly: pct(sub.filter(function(r) { return r.accepts_cash_only; }).length, sub.length),
+            noPaymentData: pct(sub.length - wd, sub.length)
+          };
+        }).sort(function(x, y) { return y.creditCards - x.creditCards; });
+
+        var byUrban = URBAN_ORDER.map(function(ut) {
+          var sub = data.filter(function(r) { return r.urban_type === ut; });
+          if (!sub.length) return null;
+          var wd = sub.filter(function(r) { return r.has_payment_data; }).length;
+          return {
+            name: ut,
+            total: sub.length,
+            withData: wd,
+            creditCards: pct(sub.filter(function(r) { return r.accepts_credit_cards; }).length, sub.length),
+            nfc: pct(sub.filter(function(r) { return r.accepts_nfc; }).length, sub.length),
+            cashOnly: pct(sub.filter(function(r) { return r.accepts_cash_only; }).length, sub.length),
+            noPaymentData: pct(sub.length - wd, sub.length)
+          };
+        }).filter(Boolean);
+
+        var locSet = {};
+        data.forEach(function(r) { locSet[r.search_location] = true; });
+        var locs = Object.keys(locSet);
+
+        var byLocation = locs.map(function(loc) {
+          var sub = data.filter(function(r) { return r.search_location === loc; });
+          var wd = sub.filter(function(r) { return r.has_payment_data; }).length;
+          return {
+            name: loc.replace(/_/g, " "),
+            urbanType: LOCATION_TYPES[loc] || "Unknown",
+            total: sub.length,
+            creditCards: pct(sub.filter(function(r) { return r.accepts_credit_cards; }).length, sub.length),
+            nfc: pct(sub.filter(function(r) { return r.accepts_nfc; }).length, sub.length),
+            cashOnly: pct(sub.filter(function(r) { return r.accepts_cash_only; }).length, sub.length),
+            noPaymentData: pct(sub.length - wd, sub.length)
+          };
+        }).sort(function(x, y) { return y.creditCards - x.creditCards; });
+
+        var heatmap = [];
+        bizTypes.forEach(function(bt) {
+          URBAN_ORDER.forEach(function(ut) {
+            var sub = data.filter(function(r) {
+              return r.search_category === bt && r.urban_type === ut;
+            });
+            if (sub.length > 0) {
+              heatmap.push({
+                bizType: BIZ_LABELS[bt] || bt,
+                urbanType: ut,
+                count: sub.length,
+                creditCards: pct(sub.filter(function(r) { return r.accepts_credit_cards; }).length, sub.length),
+                nfc: pct(sub.filter(function(r) { return r.accepts_nfc; }).length, sub.length),
+                cashOnly: pct(sub.filter(function(r) { return r.accepts_cash_only; }).length, sub.length)
+              });
+            }
+          });
+        });
+
+        return {
+          total: total,
+          withData: withData,
+          cc: cc,
+          nfc: nfc,
+          cashOnly: cashOnly,
+          byBiz: byBiz,
+          byUrban: byUrban,
+          byLocation: byLocation,
+          heatmap: heatmap
+        };
+      }, [data]);
+
+      if (error) {
+        return (
+          <div style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            minHeight: "100vh",
+            padding: 40
+          }}>
+            <div style={{
+              background: C.card,
+              border: "1px solid #ef4444",
+              borderRadius: 12,
+              padding: 32,
+              maxWidth: 500,
+              textAlign: "center"
+            }}>
+              <div style={{ fontSize: 36, marginBottom: 12 }}>&#9888;&#65039;</div>
+              <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 8 }}>
+                Error Loading Data
+              </div>
+              <div style={{ color: C.muted, fontSize: 14, lineHeight: 1.6 }}>
+                {error}
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      if (!data) {
+        return (
+          <div className="loading">
+            <div className="loading-spinner"></div>
+            Loading dashboard data...
+          </div>
+        );
+      }
+
+      var tabs = [
+        { id: "overview", label: "Overview" },
+        { id: "biztype", label: "By Business Type" },
+        { id: "geography", label: "By Geography" },
+        { id: "heatmap", label: "Heatmap" },
+        { id: "insights", label: "Key Insights" }
+      ];
+
+      function renderOverview() {
+        return (
+          <div>
+            <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 24 }}>
+              <StatCard label="Total Places" value={a.total} />
+              <StatCard
+                label="Have Payment Data"
+                value={a.withData}
+                sub={pct(a.withData, a.total) + "% of total"}
+                color={C.accent}
+              />
+              <StatCard
+                label="Accept Credit Cards"
+                value={a.cc}
+                sub={pct(a.cc, a.total) + "%"}
+                color={C.credit}
+              />
+              <StatCard
+                label="Accept NFC"
+                value={a.nfc}
+                sub={pct(a.nfc, a.total) + "%"}
+                color={C.nfc}
+              />
+              <StatCard
+                label="Cash Only"
+                value={a.cashOnly}
+                sub={pct(a.cashOnly, a.total) + "%"}
+                color={C.cashOnly}
+              />
+            </div>
+
+            <SectionTitle>Payment Acceptance by Business Type</SectionTitle>
+            <div style={{ width: "100%", height: 420 }}>
+              <ResponsiveContainer>
+                <BarChart
+                  data={a.byBiz}
+                  layout="vertical"
+                  margin={{ left: 120, right: 20, top: 5, bottom: 5 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
+                  <XAxis
+                    type="number"
+                    domain={[0, 100]}
+                    tick={{ fill: C.muted, fontSize: 12 }}
+                    unit="%"
+                  />
+                  <YAxis
+                    type="category"
+                    dataKey="name"
+                    tick={{ fill: C.text, fontSize: 12 }}
+                    width={115}
+                  />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Legend wrapperStyle={{ fontSize: 12 }} />
+                  <Bar dataKey="creditCards" name="Credit Cards" fill={C.credit} radius={[0, 3, 3, 0]} />
+                  <Bar dataKey="nfc" name="NFC" fill={C.nfc} radius={[0, 3, 3, 0]} />
+                  <Bar dataKey="cashOnly" name="Cash Only" fill={C.cashOnly} radius={[0, 3, 3, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+
+            <SectionTitle>Urban vs Rural</SectionTitle>
+            <div style={{ width: "100%", height: 260 }}>
+              <ResponsiveContainer>
+                <BarChart
+                  data={a.byUrban}
+                  margin={{ left: 20, right: 20, top: 5, bottom: 5 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
+                  <XAxis dataKey="name" tick={{ fill: C.text, fontSize: 13 }} />
+                  <YAxis
+                    domain={[0, 100]}
+                    tick={{ fill: C.muted, fontSize: 12 }}
+                    unit="%"
+                  />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Legend wrapperStyle={{ fontSize: 12 }} />
+                  <Bar dataKey="creditCards" name="Credit Cards" fill={C.credit} radius={[3, 3, 0, 0]} />
+                  <Bar dataKey="nfc" name="NFC" fill={C.nfc} radius={[3, 3, 0, 0]} />
+                  <Bar dataKey="cashOnly" name="Cash Only" fill={C.cashOnly} radius={[3, 3, 0, 0]} />
+                  <Bar dataKey="noPaymentData" name="No Data" fill={C.noData} radius={[3, 3, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        );
+      }
+
+      function renderBizType() {
+        return (
+          <div>
+            <SectionTitle>Detailed Breakdown by Business Type</SectionTitle>
+            <div style={{ overflowX: "auto" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                <thead>
+                  <tr style={{ borderBottom: "2px solid " + C.border }}>
+                    <th style={{ padding: "10px 12px", textAlign: "left", color: C.muted, fontWeight: 600 }}>Business Type</th>
+                    <th style={{ padding: "10px 12px", textAlign: "left", color: C.muted, fontWeight: 600 }}>Count</th>
+                    <th style={{ padding: "10px 12px", textAlign: "left", color: C.muted, fontWeight: 600 }}>Credit Cards %</th>
+                    <th style={{ padding: "10px 12px", textAlign: "left", color: C.muted, fontWeight: 600 }}>NFC %</th>
+                    <th style={{ padding: "10px 12px", textAlign: "left", color: C.muted, fontWeight: 600 }}>Cash Only %</th>
+                    <th style={{ padding: "10px 12px", textAlign: "left", color: C.muted, fontWeight: 600 }}>No Data %</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {a.byBiz.map(function(r) {
+                    return (
+                      <tr key={r.key} style={{ borderBottom: "1px solid " + C.border }}>
+                        <td style={{ padding: "10px 12px", fontWeight: 600 }}>{r.name}</td>
+                        <td style={{ padding: "10px 12px" }}>{r.total}</td>
+                        <td style={{ padding: "10px 12px" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                            <div style={{ width: 80, height: 8, background: C.border, borderRadius: 4, overflow: "hidden" }}>
+                              <div style={{ width: r.creditCards + "%", height: "100%", background: C.credit, borderRadius: 4 }} />
+                            </div>
+                            <span>{r.creditCards}%</span>
+                          </div>
+                        </td>
+                        <td style={{ padding: "10px 12px" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                            <div style={{ width: 80, height: 8, background: C.border, borderRadius: 4, overflow: "hidden" }}>
+                              <div style={{ width: r.nfc + "%", height: "100%", background: C.nfc, borderRadius: 4 }} />
+                            </div>
+                            <span>{r.nfc}%</span>
+                          </div>
+                        </td>
+                        <td style={{ padding: "10px 12px" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                            <div style={{ width: 80, height: 8, background: C.border, borderRadius: 4, overflow: "hidden" }}>
+                              <div style={{ width: r.cashOnly + "%", height: "100%", background: C.cashOnly, borderRadius: 4 }} />
+                            </div>
+                            <span>{r.cashOnly}%</span>
+                          </div>
+                        </td>
+                        <td style={{ padding: "10px 12px", color: C.muted }}>{r.noPaymentData}%</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            <SectionTitle>Credit Card Acceptance by Business Type</SectionTitle>
+            <div style={{ width: "100%", height: 420 }}>
+              <ResponsiveContainer>
+                <BarChart
+                  data={a.byBiz}
+                  layout="vertical"
+                  margin={{ left: 120, right: 20, top: 5, bottom: 5 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
+                  <XAxis
+                    type="number"
+                    domain={[0, 100]}
+                    tick={{ fill: C.muted, fontSize: 12 }}
+                    unit="%"
+                  />
+                  <YAxis
+                    type="category"
+                    dataKey="name"
+                    tick={{ fill: C.text, fontSize: 12 }}
+                    width={115}
+                  />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Bar dataKey="creditCards" name="Credit Cards %" fill={C.credit} radius={[0, 4, 4, 0]}>
+                    {a.byBiz.map(function(e, i) {
+                      var color = e.creditCards > 50 ? C.credit : (e.creditCards > 25 ? "#818cf8" : C.cashOnly);
+                      return <Cell key={i} fill={color} />;
+                    })}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        );
+      }
+
+      function renderGeography() {
+        return (
+          <div>
+            <SectionTitle>By Specific Location</SectionTitle>
+            <div style={{ overflowX: "auto" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                <thead>
+                  <tr style={{ borderBottom: "2px solid " + C.border }}>
+                    <th style={{ padding: "10px 12px", textAlign: "left", color: C.muted, fontWeight: 600 }}>Location</th>
+                    <th style={{ padding: "10px 12px", textAlign: "left", color: C.muted, fontWeight: 600 }}>Type</th>
+                    <th style={{ padding: "10px 12px", textAlign: "left", color: C.muted, fontWeight: 600 }}>Count</th>
+                    <th style={{ padding: "10px 12px", textAlign: "left", color: C.muted, fontWeight: 600 }}>Credit Cards %</th>
+                    <th style={{ padding: "10px 12px", textAlign: "left", color: C.muted, fontWeight: 600 }}>NFC %</th>
+                    <th style={{ padding: "10px 12px", textAlign: "left", color: C.muted, fontWeight: 600 }}>Cash Only %</th>
+                    <th style={{ padding: "10px 12px", textAlign: "left", color: C.muted, fontWeight: 600 }}>No Data %</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {a.byLocation.map(function(r) {
+                    var badgeColor = r.urbanType === "Major Urban" ? C.credit :
+                      (r.urbanType === "Mid-size City" ? C.nfc : C.cashOnly);
+                    var badgeBg = r.urbanType === "Major Urban" ? "rgba(99,102,241,0.2)" :
+                      (r.urbanType === "Mid-size City" ? "rgba(6,182,212,0.2)" : "rgba(245,158,11,0.2)");
+                    return (
+                      <tr key={r.name} style={{ borderBottom: "1px solid " + C.border }}>
+                        <td style={{ padding: "10px 12px", fontWeight: 600 }}>{r.name}</td>
+                        <td style={{ padding: "10px 12px" }}>
+                          <span style={{
+                            fontSize: 11,
+                            padding: "2px 8px",
+                            borderRadius: 10,
+                            background: badgeBg,
+                            color: badgeColor
+                          }}>
+                            {r.urbanType}
+                          </span>
+                        </td>
+                        <td style={{ padding: "10px 12px" }}>{r.total}</td>
+                        <td style={{ padding: "10px 12px", color: C.credit, fontWeight: 600 }}>{r.creditCards}%</td>
+                        <td style={{ padding: "10px 12px", color: C.nfc }}>{r.nfc}%</td>
+                        <td style={{ padding: "10px 12px", color: C.cashOnly }}>{r.cashOnly}%</td>
+                        <td style={{ padding: "10px 12px", color: C.muted }}>{r.noPaymentData}%</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            <SectionTitle>Credit Card Acceptance by Location</SectionTitle>
+            <div style={{ width: "100%", height: 500 }}>
+              <ResponsiveContainer>
+                <BarChart
+                  data={a.byLocation}
+                  layout="vertical"
+                  margin={{ left: 140, right: 20, top: 5, bottom: 5 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
+                  <XAxis
+                    type="number"
+                    domain={[0, 100]}
+                    tick={{ fill: C.muted, fontSize: 12 }}
+                    unit="%"
+                  />
+                  <YAxis
+                    type="category"
+                    dataKey="name"
+                    tick={{ fill: C.text, fontSize: 11 }}
+                    width={135}
+                  />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Bar dataKey="creditCards" name="Credit Cards %" radius={[0, 4, 4, 0]}>
+                    {a.byLocation.map(function(e, i) {
+                      var color = e.urbanType === "Major Urban" ? C.credit :
+                        (e.urbanType === "Mid-size City" ? C.nfc : C.cashOnly);
+                      return <Cell key={i} fill={color} />;
+                    })}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        );
+      }
+
+      function renderHeatmap() {
+        var bizTypeSet = {};
+        a.heatmap.forEach(function(h) { bizTypeSet[h.bizType] = true; });
+        var uniqueBizTypes = Object.keys(bizTypeSet);
+
+        return (
+          <div>
+            <SectionTitle>Credit Card Acceptance: Business Type x Urban/Rural</SectionTitle>
+            <p style={{ color: C.muted, fontSize: 13, marginBottom: 20, lineHeight: 1.6 }}>
+              Does cashless adoption vary by both business type AND location type?
+              Darker purple = higher credit card acceptance. Orange = lower.
+            </p>
+            <div style={{ overflowX: "auto" }}>
+              <table style={{ borderCollapse: "collapse", fontSize: 13, width: "100%" }}>
+                <thead>
+                  <tr>
+                    <th style={{ padding: 10, textAlign: "left", color: C.muted }}>Business Type</th>
+                    {URBAN_ORDER.map(function(u) {
+                      return (
+                        <th key={u} style={{ padding: 10, textAlign: "center", color: C.muted, minWidth: 130 }}>
+                          {u}
+                        </th>
+                      );
+                    })}
+                  </tr>
+                </thead>
+                <tbody>
+                  {uniqueBizTypes.map(function(bt) {
+                    return (
+                      <tr key={bt} style={{ borderBottom: "1px solid " + C.border }}>
+                        <td style={{ padding: 10, fontWeight: 600 }}>{bt}</td>
+                        {URBAN_ORDER.map(function(ut) {
+                          var cell = a.heatmap.find(function(h) {
+                            return h.bizType === bt && h.urbanType === ut;
+                          });
+                          if (!cell) {
+                            return (
+                              <td key={ut} style={{ padding: 10, textAlign: "center", color: C.muted }}>
+                                &mdash;
+                              </td>
+                            );
+                          }
+                          var intensity = cell.creditCards / 100;
+                          var bg = intensity > 0.5
+                            ? "rgba(99,102,241," + (0.15 + intensity * 0.45) + ")"
+                            : "rgba(245,158,11," + (0.1 + (1 - intensity) * 0.25) + ")";
+                          return (
+                            <td key={ut} style={{ padding: 10, textAlign: "center", background: bg, borderRadius: 4 }}>
+                              <div style={{ fontWeight: 700, fontSize: 16 }}>{cell.creditCards}%</div>
+                              <div style={{ fontSize: 11, color: C.muted }}>n={cell.count}</div>
+                              <div style={{ fontSize: 11, color: C.nfc }}>NFC: {cell.nfc}%</div>
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        );
+      }
+
+      function renderInsights() {
+        var insights = [];
+
+        if (a.byBiz.length > 1) {
+          var top = a.byBiz[0];
+          var bottom = a.byBiz[a.byBiz.length - 1];
+          var gap = top.creditCards - bottom.creditCards;
+          var verdict = gap > 30
+            ? "This is a massive disparity - strongly supporting the hypothesis of uneven adoption."
+            : (gap > 15
+              ? "A significant gap suggesting meaningful variation."
+              : "Relatively modest variation across types.");
+          insights.push({
+            icon: "\uD83D\uDCCA",
+            title: "Cashless adoption gap",
+            text: "The gap between the most cashless business type (" + top.name + " at " + top.creditCards + "%) and the least (" + bottom.name + " at " + bottom.creditCards + "%) is " + gap.toFixed(1) + " percentage points. " + verdict
+          });
+        }
+
+        var urban = a.byUrban.find(function(u) { return u.name === "Major Urban"; });
+        var rural = a.byUrban.find(function(u) { return u.name === "Small / Rural"; });
+
+        if (urban && rural) {
+          var urbanRuralGap = urban.creditCards - rural.creditCards;
+          var urbanVerdict = urbanRuralGap > 20
+            ? "Strong evidence of geographic digital divide."
+            : (urbanRuralGap > 10
+              ? "A moderate urban-rural gap."
+              : "Surprisingly small urban-rural gap.");
+          insights.push({
+            icon: "\uD83C\uDFD9\uFE0F",
+            title: "Urban-rural divide",
+            text: "Major urban: " + urban.creditCards + "% credit card acceptance vs small/rural: " + rural.creditCards + "% - a " + urbanRuralGap.toFixed(1) + " point gap. " + urbanVerdict
+          });
+          insights.push({
+            icon: "\uD83D\uDD0D",
+            title: "Missing data as signal",
+            text: rural.noPaymentData + "% of rural places have no payment data vs " + urban.noPaymentData + "% in cities. Missing data likely correlates with smaller, less-digitized businesses - the \"dark matter\" of cash-only Japan."
+          });
+        }
+
+        var nfcLeaders = a.byBiz.filter(function(b) { return b.nfc > b.creditCards; });
+        if (nfcLeaders.length > 0) {
+          var names = nfcLeaders.map(function(n) { return n.name; }).join(", ");
+          insights.push({
+            icon: "\uD83D\uDCF1",
+            title: "NFC outpacing credit cards",
+            text: "In " + names + ", NFC acceptance exceeds credit cards - reflecting Japan's strong IC card (Suica/Pasmo) ecosystem."
+          });
+        }
+
+        var highCash = a.byBiz
+          .filter(function(b) { return b.cashOnly > 10; })
+          .sort(function(x, y) { return y.cashOnly - x.cashOnly; });
+        if (highCash.length > 0) {
+          var cashNames = highCash.map(function(b) { return b.name + " (" + b.cashOnly + "% cash-only)"; }).join(", ");
+          insights.push({
+            icon: "\uD83D\uDCB4",
+            title: "Cash holdouts",
+            text: "Most cash-resistant types: " + cashNames + ". Likely smaller independents where merchant fees are a deterrent."
+          });
+        }
+
+        var conv = a.byBiz.find(function(b) { return b.key === "convenience_store"; });
+        var ramen = a.byBiz.find(function(b) { return b.key === "ramen_restaurant"; });
+        if (conv && ramen) {
+          var chainGap = conv.creditCards - ramen.creditCards;
+          var chainVerdict = chainGap > 20
+            ? "Directly supports the hypothesis that chains lead cashless adoption."
+            : "Gap is smaller than expected.";
+          insights.push({
+            icon: "\uD83C\uDF5C",
+            title: "Chain vs independent",
+            text: "Convenience stores (chains): " + conv.creditCards + "% credit card acceptance. Ramen shops (independents): " + ramen.creditCards + "%. " + chainVerdict
+          });
+        }
+
+        insights.push({
+          icon: "\u26A0\uFE0F",
+          title: "Data limitations",
+          text: "Dataset covers " + a.total + " places from Google's database. Payment data comes from user reports and algorithmic inference. " + pct(a.total - a.withData, a.total) + "% of places lack any payment data - the true cash-only rate is likely higher than measured."
+        });
+
+        return (
+          <div>
+            <SectionTitle>Automated Insights</SectionTitle>
+            {insights.map(function(ins, i) {
+              return (
+                <div key={i} style={{
+                  background: C.card,
+                  border: "1px solid " + C.border,
+                  borderRadius: 10,
+                  padding: "16px 20px",
+                  marginBottom: 12
+                }}>
+                  <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 6 }}>
+                    {ins.icon} {ins.title}
+                  </div>
+                  <div style={{ fontSize: 13, color: C.muted, lineHeight: 1.7 }}>
+                    {ins.text}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        );
+      }
+
+      var collectedDate = data[0] && data[0].collected_at
+        ? data[0].collected_at.split("T")[0]
+        : "recently";
+
+      return (
+        <div style={{ padding: "20px 24px", maxWidth: 960, margin: "0 auto" }}>
+          <div style={{ marginBottom: 8 }}>
+            <h1 style={{ fontSize: 24, fontWeight: 800, marginBottom: 4 }}>
+              &#127471;&#127477; Japan Cashless Adoption Dashboard
+            </h1>
+            <p style={{ color: C.muted, fontSize: 13 }}>
+              Payment acceptance data across {a.total} businesses &middot; Source: Google Places API
+            </p>
+          </div>
+
+          <div style={{ display: "flex", gap: 8, marginBottom: 24, flexWrap: "wrap", marginTop: 16 }}>
+            {tabs.map(function(t) {
+              return (
+                <button
+                  key={t.id}
+                  onClick={function() { setView(t.id); }}
+                  style={{
+                    padding: "8px 16px",
+                    borderRadius: 6,
+                    border: "none",
+                    cursor: "pointer",
+                    fontSize: 13,
+                    fontWeight: 600,
+                    background: view === t.id ? C.credit : C.card,
+                    color: view === t.id ? "white" : C.muted
+                  }}
+                >
+                  {t.label}
+                </button>
+              );
+            })}
+          </div>
+
+          {view === "overview" && renderOverview()}
+          {view === "biztype" && renderBizType()}
+          {view === "geography" && renderGeography()}
+          {view === "heatmap" && renderHeatmap()}
+          {view === "insights" && renderInsights()}
+
+          <div style={{
+            marginTop: 40,
+            padding: "16px 0",
+            borderTop: "1px solid " + C.border,
+            color: C.muted,
+            fontSize: 12,
+            lineHeight: 1.6
+          }}>
+            Data source: Google Places API (New) &middot; paymentOptions field &middot; Collected {collectedDate}
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.render(
+      React.createElement(App),
+      document.getElementById("root")
+    );
+  </script>
+</body>
+</html>
