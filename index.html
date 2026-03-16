@@ -4,122 +4,97 @@
   <meta charset="UTF-8" />
   <title>Sebastian Ryder</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: #1e1e1e;
-      --fg: #e6e6e6;
-      --muted: #a0a0a0;
-      --accent: #fe7d6a;
+      --bg: #ffffff;
+      --fg: #1a1a1a;
+      --muted: #444444;
+      --accent: #8b0000;
+      --accent2: #5b2c6f;
+      --border: #cccccc;
     }
-
     body {
       margin: 0;
       background: var(--bg);
       color: var(--fg);
-      font-family: 'Inter', system-ui, sans-serif;
+      font-family: 'Times New Roman', Times, Georgia, serif;
     }
-
     .container {
-      padding: 1.5rem;
-      max-width: 480px;
-      line-height: 1.55;
-      font-size: 0.9rem;
+      padding: 2rem 1.5rem;
+      max-width: 520px;
+      line-height: 1.6;
+      font-size: 1rem;
     }
-
-    .palms {
-      font-size: 1.2rem;
-      margin-bottom: 0.75rem;
-    }
-
     h1 {
-      font-size: 1.4rem;
-      font-weight: 500;
-      margin: 0 0 0.75rem 0;
+      font-size: 1.6rem;
+      font-weight: bold;
+      margin: 0 0 0.25rem 0;
+      color: var(--accent);
     }
-
     p {
       margin: 0.35rem 0;
       color: var(--muted);
     }
-
+    .subtitle {
+      font-style: italic;
+      color: var(--accent2);
+      font-size: 0.95rem;
+    }
     .age {
       margin-top: 1rem;
       font-size: 0.95rem;
+      color: var(--muted);
     }
-
     .age span {
       color: var(--accent);
       font-variant-numeric: tabular-nums;
+      font-weight: bold;
     }
-
     a {
-      color: var(--accent);
-      text-decoration: none;
-    }
-
-    a:hover {
+      color: var(--accent2);
       text-decoration: underline;
     }
-
+    a:hover {
+      color: var(--accent);
+    }
     .projects {
       margin-top: 1.25rem;
       padding-top: 0.75rem;
-      border-top: 1px solid #333;
+      border-top: 1px solid var(--border);
     }
-
     .projects p.label {
-      color: var(--fg);
-      font-weight: 500;
-      margin-bottom: 0.25rem;
+      color: var(--accent);
+      font-weight: bold;
+      margin-bottom: 0.15rem;
+      font-size: 1.05rem;
+    }
+    .projects p.desc {
+      color: var(--muted);
+      font-size: 0.95rem;
     }
   </style>
 </head>
 <body>
   <div class="container">
-
     <h1>Sebastian Ryder</h1>
-    <p>LSE Year 2 &mdash; PPE</p>
-
-
+    <p class="subtitle">LSE Year 2 &mdash; PPE</p>
     <div class="projects">
       <p class="label">Smaregi</p>
-      <p>
+      <p class="desc">
         <a href="./cashless/">Japan Cashless Adoption (for Smaregi pitch)</a>
         &mdash; How digital payments are (unevenly) distributed amongst Japanese businesses
       </p>
     </div>
   </div>
-
   <script>
-    var emojiPool = [
-      "\uD83C\uDF34", "\uD83C\uDF0A", "\u2600\uFE0F", "\uD83C\uDFD6\uFE0F",
-      "\uD83E\uDD65", "\uD83C\uDF3A", "\uD83D\uDE80", "\uD83C\uDF19",
-      "\uD83C\uDFB6", "\u26A1"
-    ];
-
-    function randomEmojis(count) {
-      if (!count) count = 3;
-      var result = "";
-      for (var i = 0; i < count; i++) {
-        result += emojiPool[Math.floor(Math.random() * emojiPool.length)];
-      }
-      return result;
-    }
-
-    document.getElementById("emojis").textContent = randomEmojis();
-
     var birthDate = new Date(2006, 4, 30, 17, 0, 0);
-
     function updateAge() {
       var now = new Date();
       var ageMs = now - birthDate;
       var ageYears = ageMs / (1000 * 60 * 60 * 24 * 365.2425);
-      document.getElementById("age").textContent = ageYears.toFixed(9);
+      var el = document.getElementById("age");
+      if (el) el.textContent = ageYears.toFixed(9);
     }
-
     updateAge();
     setInterval(updateAge, 5);
   </script>
