@@ -4,12 +4,9 @@
   <meta charset="UTF-8" />
   <title>Seb Ryder</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-
-  <!-- Minimal modern font -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
-
   <style>
     :root {
       --bg: #1e1e1e;
@@ -66,20 +63,30 @@
     a:hover {
       text-decoration: underline;
     }
+
+    .projects {
+      margin-top: 1.25rem;
+      padding-top: 0.75rem;
+      border-top: 1px solid #333;
+    }
+
+    .projects p.label {
+      color: var(--fg);
+      font-weight: 500;
+      margin-bottom: 0.25rem;
+    }
   </style>
 </head>
-
 <body>
   <div class="container">
-    <div class="palms" id="emojis">🌴🌴🌴</div>
+    <div class="palms" id="emojis"></div>
 
     <h1>Seb Ryder</h1>
-
-    <p>LSE Year 2 — PPE</p>
-    <p>Fluent in Portuguese, French, English & Russian</p>
+    <p>LSE Year 2 &mdash; PPE</p>
+    <p>Fluent in Portuguese, French, English &amp; Russian</p>
 
     <div class="age">
-      <span id="age">loading…</span>
+      <span id="age">loading&hellip;</span>
     </div>
 
     <p style="margin-top: 0.75rem;">
@@ -87,17 +94,27 @@
         LinkedIn
       </a>
     </p>
+
+    <div class="projects">
+      <p class="label">Projects</p>
+      <p>
+        <a href="./cashless/">Japan Cashless Adoption Dashboard</a>
+        &mdash; mapping how unevenly digital payments are spreading across Japanese businesses
+      </p>
+    </div>
   </div>
 
   <script>
-    // -------- Random emoji header --------
-    const emojiPool = [
-      "🌴", "🌊", "☀️", "🗿", "🪐", "🌒", "🧠", "📡", "🕶️", "🪶"
+    var emojiPool = [
+      "\uD83C\uDF34", "\uD83C\uDF0A", "\u2600\uFE0F", "\uD83C\uDFD6\uFE0F",
+      "\uD83E\uDD65", "\uD83C\uDF3A", "\uD83D\uDE80", "\uD83C\uDF19",
+      "\uD83C\uDFB6", "\u26A1"
     ];
 
-    function randomEmojis(count = 3) {
-      let result = "";
-      for (let i = 0; i < count; i++) {
+    function randomEmojis(count) {
+      if (!count) count = 3;
+      var result = "";
+      for (var i = 0; i < count; i++) {
         result += emojiPool[Math.floor(Math.random() * emojiPool.length)];
       }
       return result;
@@ -105,14 +122,12 @@
 
     document.getElementById("emojis").textContent = randomEmojis();
 
-    // -------- Live age counter --------
-    // Birth date: May 30, 2006 at 17:00
-    const birthDate = new Date(2006, 4, 30, 17, 0, 0);
+    var birthDate = new Date(2006, 4, 30, 17, 0, 0);
 
     function updateAge() {
-      const now = new Date();
-      const ageMs = now - birthDate;
-      const ageYears = ageMs / (1000 * 60 * 60 * 24 * 365.2425);
+      var now = new Date();
+      var ageMs = now - birthDate;
+      var ageYears = ageMs / (1000 * 60 * 60 * 24 * 365.2425);
       document.getElementById("age").textContent = ageYears.toFixed(9);
     }
 
@@ -121,4 +136,3 @@
   </script>
 </body>
 </html>
-
